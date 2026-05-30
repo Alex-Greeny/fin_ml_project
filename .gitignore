@@ -1,0 +1,13 @@
+.env
+
+trades.db
+bot_activity.log
+*.session
+*.session-journal
+
+data/
+*.csv
+
+__pycache__/
+.venv/
+*.pyc
