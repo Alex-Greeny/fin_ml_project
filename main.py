@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix, hstack
 from t_tech.invest import InstrumentStatus, OrderDirection, OrderType, Quotation, CandleInterval
 from t_tech.invest.sandbox.async_client import AsyncSandboxClient
 from telethon import TelegramClient, events
+import python_socks
 import os
 from dotenv import load_dotenv
 from database import add_trade, get_open_trades, close_trade
@@ -36,7 +37,15 @@ TG_API_ID = int(os.getenv("TG_API_ID"))
 TG_API_HASH = os.getenv("TG_API_HASH")
 TARGET_CHANNEL = "testbotforml"
 
-tg_client = TelegramClient('fin_ml_session', TG_API_ID, TG_API_HASH)
+proxy_dict = {
+    'proxy_type': python_socks.ProxyType.SOCKS5,
+    'addr': os.getenv('PROXY_IP'),
+    'port': int(os.getenv('PROXY_PORT')),
+    'username': os.getenv('PROXY_USER'),
+    'password': os.getenv('PROXY_PASS')
+}
+
+tg_client = TelegramClient('fin_ml_session', TG_API_ID, TG_API_HASH, proxy=proxy_dict)
 
 TICKER_TO_FIGI = {}
 
