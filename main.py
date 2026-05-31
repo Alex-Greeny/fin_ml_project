@@ -214,7 +214,7 @@ async def calculate_atr(client: AsyncSandboxClient, figi, period=14):
         logger.error(f"Ошибка расчета ATR: {e}")
         return None
 
-async def execute_trade(client: AsyncSandboxClient, tickers):
+async def execute_trade(client: AsyncSandboxClient, tickers, news_text, confidence):
     direction = OrderDirection.ORDER_DIRECTION_SELL
     for ticker in tickers:
         pos_quantity = await determine_quantity(client, ticker, len(tickers))
@@ -256,7 +256,17 @@ async def execute_trade(client: AsyncSandboxClient, tickers):
                 take_price = executed_price * 0.96
                 logger.info(f"Ошибка ATR. Используем фиксированные 2% и 4% для {ticker}")
             
-            add_trade(ticker, figi, 'SHORT', executed_price, pos_quantity, stop_price, take_price)
+            add_trade(
+                ticker=ticker,
+                figi=figi,
+                news_text=news_text,
+                direction='SHORT',
+                confidence=confidence,
+                entry_price=executed_price,
+                quantity=pos_quantity,
+                stop_price=stop_price,
+                take_price=take_price
+            )
         except Exception as e:
             logger.error(f"Ошибка операции по {ticker}: {e}")
 
@@ -287,8 +297,8 @@ def make_prediction(news_text):
     
     logger.info(f"Уверенность в падении: {conf_short*100:.1f}%")
     if conf_short >= 0.38:
-        return -1
-    return 0
+        return -1, conf_short
+    return 0, conf_short
 
 #МОниторинг открытых сделок
 async def position_monitor():
@@ -373,7 +383,7 @@ async def new_message_parser(event):
     )
     logger.info(log_msg)
     
-    prediction = await asyncio.to_thread(make_prediction, news_text)
+    prediction, confidence = await asyncio.to_thread(make_prediction, news_text)
     
     if prediction != -1:
         logger.info('Шорт сигнал отменен отменен')
@@ -381,7 +391,7 @@ async def new_message_parser(event):
     
     logger.info('Сигнал корректен, открытие сделки')
     async with AsyncSandboxClient(TOKEN) as client:
-        await execute_trade(client, valid_tickers)
+        await execute_trade(client, valid_tickers, news_text, confidence)
 
 
 async def main():

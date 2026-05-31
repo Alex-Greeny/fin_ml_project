@@ -13,7 +13,9 @@ class TradeRecord(Base):
     id = Column(Integer, primary_key=True)
     ticker = Column(String, nullable=False)
     figi = Column(String, nullable=False)
+    news_text = Column(String, nullable=True)
     direction = Column(String, nullable=False)
+    confidence = Column(Float, nullable=True)
     status = Column(String, default='OPEN')
     
     entry_price = Column(Float, nullable=False)
@@ -31,12 +33,14 @@ class TradeRecord(Base):
 Base.metadata.create_all(engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def add_trade(ticker, figi, direction, entry_price, quantity, stop_price=None, take_price=None):
+def add_trade(ticker, figi, news_text, direction, confidence, entry_price, quantity, stop_price=None, take_price=None):
     db = SessionLocal()
     new_trade = TradeRecord(
         ticker=ticker,
         figi=figi,
+        news_text=news_text,
         direction=direction,
+        confidence=confidence,
         entry_price=entry_price,
         quantity=quantity,
         stop_price=stop_price,
@@ -47,7 +51,7 @@ def add_trade(ticker, figi, direction, entry_price, quantity, stop_price=None, t
     db.add(new_trade)
     db.commit()
     db.close()
-    logger.info(f"БД | Сделка {ticker} сохранена. Вход: {entry_price:.2f}, Стоп: {stop_price:.2f}, Тейк: {take_price:.2f}")
+    logger.info(f"Сделка {ticker} сохранена. Вход: {entry_price:.2f}, Стоп: {stop_price:.2f}, Тейк: {take_price:.2f}")
 
 def get_open_trades():
     db = SessionLocal()
@@ -88,5 +92,5 @@ def close_trade(trade_id, close_price, reason):
             trade.close_reason = reason
         
         db.commit()
-        logger.info(f"БД | Сделка {trade.ticker} закрыта. Причина: {trade.close_reason}. PnL: {trade.pnl_percent}%")
+        logger.info(f"Сделка {trade.ticker} закрыта. Причина: {trade.close_reason}. PnL: {trade.pnl_percent}%")
     db.close()
