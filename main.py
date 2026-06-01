@@ -35,7 +35,7 @@ TOKEN = os.getenv("TINKOFF_TOKEN")
 ACCOUNT_ID = os.getenv("ACCOUNT_ID")
 TG_API_ID = int(os.getenv("TG_API_ID"))
 TG_API_HASH = os.getenv("TG_API_HASH")
-TARGET_CHANNEL = "testbotforml"
+TARGET_CHANNEL = "markettwits"
 
 proxy_dict = {
     'proxy_type': python_socks.ProxyType.SOCKS5,
@@ -286,6 +286,12 @@ def get_seara_probs(text):
         return 0.0, 1.0, 0.0
 
 def make_prediction(news_text):
+    text_lower = news_text.lower()
+    markers = ['невыплат', 'не выплачивать']
+    
+    if any(marker in text_lower for marker in markers):
+        logger.info("Найден маркер отмены дивидендов")
+        return -1, 0.99
     prob_pos, prob_neu, prob_neg = get_seara_probs(news_text)
     x_tfidf = vectorizer.transform([news_text])
     x_sent = csr_matrix([[prob_pos, prob_neu, prob_neg]])
@@ -372,6 +378,8 @@ async def new_message_parser(event):
         return
     processed_messages.add(msg_id)
     news_text = event.message.message
+    if '#дивиденд' not in news_text.lower():
+        return
     tickers = get_tickers(news_text)
     valid_tickers = [t for t in tickers if t in TICKER_TO_FIGI]
     if not valid_tickers:
